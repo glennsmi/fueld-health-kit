@@ -7,4 +7,9 @@ export class fueldHKWeb extends WebPlugin implements fueldHKPlugin {
     console.log('ECHO', options);
     return options;
   }
+
+  async requestAuthorization(): Promise<{ status: string }> {
+    console.log('Request Authorization');
+    return { status: 'Authorization request sent' };
+  }
 }

@@ -10,7 +10,8 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "fueldHKPlugin"
     public let jsName = "fueldHK"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "echo", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "echo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestAuthorization", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = fueldHK()
 
@@ -18,6 +19,13 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
         let value = call.getString("value") ?? ""
         call.resolve([
             "value": implementation.echo(value)
+        ])
+    }
+
+    @objc func requestAuthorization(_ call: CAPPluginCall) {
+        implementation.requestAuthorization()
+        call.resolve([
+            "status": "Authorization request sent"
         ])
     }
 }

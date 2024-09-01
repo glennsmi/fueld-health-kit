@@ -14,6 +14,7 @@ npx cap sync
 <docgen-index>
 
 * [`echo(...)`](#echo)
+* [`requestAuthorization()`](#requestauthorization)
 
 </docgen-index>
 
@@ -34,4 +35,16 @@ echo(options: { value: string; }) => Promise<{ value: string; }>
 
 --------------------
 
+
+### requestAuthorization()
+
+```typescript
+requestAuthorization() => Promise<{ status: string; }>
+```
+
+**Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
+
+--------------------
+
 </docgen-api>
+# fueld-health-kit
