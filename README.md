@@ -15,6 +15,9 @@ npx cap sync
 
 * [`echo(...)`](#echo)
 * [`requestAuthorization()`](#requestauthorization)
+* [`getAuthorizationStatus(...)`](#getauthorizationstatus)
+* [`queryTotalCalories()`](#querytotalcalories)
+* [`queryCaloriesTimeSeries(...)`](#querycaloriestimeseries)
 
 </docgen-index>
 
@@ -43,6 +46,47 @@ requestAuthorization() => Promise<{ status: string; }>
 ```
 
 **Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
+
+--------------------
+
+
+### getAuthorizationStatus(...)
+
+```typescript
+getAuthorizationStatus(options: { quantityTypeIdentifier: string; }) => Promise<{ status: string; }>
+```
+
+| Param         | Type                                             |
+| ------------- | ------------------------------------------------ |
+| **`options`** | <code>{ quantityTypeIdentifier: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
+
+--------------------
+
+
+### queryTotalCalories()
+
+```typescript
+queryTotalCalories() => Promise<{ totalCalories: number; activeCalories: number; basalCalories: number; }>
+```
+
+**Returns:** <code>Promise&lt;{ totalCalories: number; activeCalories: number; basalCalories: number; }&gt;</code>
+
+--------------------
+
+
+### queryCaloriesTimeSeries(...)
+
+```typescript
+queryCaloriesTimeSeries(options: { startDate: string; endDate: string; }) => Promise<{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }>
+```
+
+| Param         | Type                                                 |
+| ------------- | ---------------------------------------------------- |
+| **`options`** | <code>{ startDate: string; endDate: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }&gt;</code>
 
 --------------------
 
