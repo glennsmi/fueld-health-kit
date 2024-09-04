@@ -21,6 +21,30 @@ export class fueldHKWeb extends WebPlugin implements fueldHKPlugin {
     return { status: 'Not Available' };
   }
 
+  async getAllAuthorizationStatuses(): Promise<{ statuses: string }> {
+    console.log('Get All Authorization Statuses');
+    // Web implementation doesn't have access to HealthKit, so we'll return a default status for all types
+    const defaultStatuses = {
+      "HKQuantityTypeIdentifierActiveEnergyBurned": {
+        "isAuthorized": false,
+        "status": "Not Available"
+      },
+      "HKQuantityTypeIdentifierBasalEnergyBurned": {
+        "isAuthorized": false,
+        "status": "Not Available"
+      },
+      "HKQuantityTypeIdentifierStepCount": {
+        "isAuthorized": false,
+        "status": "Not Available"
+      },
+      "HKQuantityTypeIdentifierDistanceWalkingRunning": {
+        "isAuthorized": false,
+        "status": "Not Available"
+      }
+    };
+    return { statuses: JSON.stringify(defaultStatuses) };
+  }
+
   async queryTotalCalories(): Promise<{ totalCalories: number, activeCalories: number, basalCalories: number }> {
     console.log('Query Total Calories');
     // Web implementation doesn't have access to HealthKit, so we'll return default values
@@ -50,56 +74,7 @@ export class fueldHKWeb extends WebPlugin implements fueldHKPlugin {
         get totalCalories() { return this.activeCalories + this.basalCalories; }
       });
     }
-    // const timeSeriesData = [
-    //   {
-    //     date: options.startDate,
-    //     activeCalories: 400,
-    //     basalCalories: 1550,
-    //     totalCalories: 1950
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 1).toISOString(),
-    //     activeCalories: 450,
-    //     basalCalories: 1540,
-    //     totalCalories: 1990
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 2).toISOString(),
-    //     activeCalories: 420,
-    //     basalCalories: 1560,
-    //     totalCalories: 1980
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 3).toISOString(),
-    //     activeCalories: 480,
-    //     basalCalories: 1530,
-    //     totalCalories: 2010
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 4).toISOString(),
-    //     activeCalories: 430,
-    //     basalCalories: 1545,
-    //     totalCalories: 1975
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 5).toISOString(),
-    //     activeCalories: 460,
-    //     basalCalories: 1535,
-    //     totalCalories: 1995
-    //   },
-    //   {
-    //     date: this.addDays(new Date(options.startDate), 6).toISOString(),
-    //     activeCalories: 470,
-    //     basalCalories: 1540,
-    //     totalCalories: 2010
-    //   },
-    //   {
-    //     date: options.endDate,
-    //     activeCalories: 500,
-    //     basalCalories: 1525,
-    //     totalCalories: 2025
-    //   }
-    // ];
+
     return { timeSeriesData };
   }
 }

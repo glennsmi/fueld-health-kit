@@ -14,6 +14,7 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "echo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestAuthorization", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getAuthorizationStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getAllAuthorizationStatuses", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryTotalCalories", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryCaloriesTimeSeries", returnType: CAPPluginReturnPromise)
     ]
@@ -43,6 +44,13 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
         let status = implementation.getAuthorizationStatus(for: string)
         call.resolve([
             "status": status
+        ])
+    }
+
+    @objc func getAllAuthorizationStatuses(_ call: CAPPluginCall) {
+        let statuses = implementation.getAllAuthorizationStatuses()
+        call.resolve([
+            "statuses": statuses
         ])
     }
 

@@ -16,6 +16,7 @@ npx cap sync
 * [`echo(...)`](#echo)
 * [`requestAuthorization()`](#requestauthorization)
 * [`getAuthorizationStatus(...)`](#getauthorizationstatus)
+* [`getAllAuthorizationStatuses()`](#getallauthorizationstatuses)
 * [`queryTotalCalories()`](#querytotalcalories)
 * [`queryCaloriesTimeSeries(...)`](#querycaloriestimeseries)
 
@@ -61,6 +62,17 @@ getAuthorizationStatus(options: { quantityTypeIdentifier: string; }) => Promise<
 | **`options`** | <code>{ quantityTypeIdentifier: string; }</code> |
 
 **Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
+
+--------------------
+
+
+### getAllAuthorizationStatuses()
+
+```typescript
+getAllAuthorizationStatuses() => Promise<{ statuses: string; }>
+```
+
+**Returns:** <code>Promise&lt;{ statuses: string; }&gt;</code>
 
 --------------------
 
