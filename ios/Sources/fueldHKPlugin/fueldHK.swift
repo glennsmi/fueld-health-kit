@@ -129,27 +129,6 @@ import HealthKit
         
         return "Error creating JSON string"
     }
-    
-    // Original code, testing ChatGPT version
-    // @objc public func getAllAuthorizationStatuses() -> String {
-    //     var authorizationStatus: [String: Any] = [:]
-        
-    //     for type in readTypes {
-    //         let status = healthStore.authorizationStatus(for: type)
-    //         let isAuthorized = (status == .sharingAuthorized)
-    //         authorizationStatus[type.identifier] = [
-    //             "isAuthorized": isAuthorized,
-    //             "status": statusToString(status)
-    //         ]
-    //     }
-        
-    //     let jsonData = try? JSONSerialization.data(withJSONObject: authorizationStatus, options: [])
-    //     if let jsonString = String(data: jsonData!, encoding: .utf8) {
-    //         return jsonString
-    //     }
-        
-    //     return "Error creating JSON string"
-    // }
 
     @objc public func getAllAuthorizationStatuses() -> String {
     var authorizationStatus: [String: Any] = [:]
@@ -238,65 +217,6 @@ import HealthKit
 
     typealias QueryCaloriesTimeSeriesCompletion = ([Date: (Double, Double, Double)]?, Error?) -> Void
 
-    // Original code, testing ChatGPT version
-    // func queryCaloriesTimeSeries(startDate: Date, endDate: Date, completion: @escaping QueryCaloriesTimeSeriesCompletion) {
-    //     print("In the queryCaloriesTimeSeries in fueldHK.swift")
-    //     guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
-    //           let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
-    //         completion(nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
-    //         return
-    //     }
-
-    //     let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-    //     let interval = DateComponents(day: 1)
-
-    //     let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
-
-    //     activeEnergyQuery.initialResultsHandler = { _, result, error in
-    //         guard let result = result else {
-    //             completion(nil, error)
-    //             return
-    //         }
-
-    //         var timeSeriesData: [Date: (Double, Double, Double)] = [:]
-
-    //         result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
-    //             let date = statistics.startDate
-    //             let activeCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
-
-    //             timeSeriesData[date] = (activeCalories, 0.0, activeCalories)
-    //         }
-
-    //         let basalEnergyQuery = HKStatisticsCollectionQuery(quantityType: basalEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
-
-    //         basalEnergyQuery.initialResultsHandler = { _, result, error in
-    //             guard let result = result else {
-    //                 completion(nil, error)
-    //                 return
-    //             }
-
-    //             result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
-    //                 let date = statistics.startDate
-    //                 let basalCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
-
-    //                 if var data = timeSeriesData[date] {
-    //                     data.1 = basalCalories
-    //                     data.2 = data.0 + basalCalories
-    //                     timeSeriesData[date] = data
-    //                 } else {
-    //                     timeSeriesData[date] = (0.0, basalCalories, basalCalories)
-    //                 }
-    //             }
-
-    //             completion(timeSeriesData, nil)
-    //         }
-
-    //         self.healthStore.execute(basalEnergyQuery)
-    //     }
-
-    //     healthStore.execute(activeEnergyQuery)
-    // }
-
     func queryCaloriesTimeSeries(startDate: Date, endDate: Date, completion: @escaping QueryCaloriesTimeSeriesCompletion) {
     print("In the queryCaloriesTimeSeries in fueldHK.swift")
 
@@ -361,5 +281,71 @@ import HealthKit
 
     self.healthStore.execute(activeEnergyQuery)
 }
+
+@objc public func queryAllTimeCaloriesTimeSeries(completion: @escaping ([Date: (Double, Double, Double)]?, Error?) -> Void) {
+    guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
+          let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
+        completion(nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
+        return
+    }
+
+    let calendar = Calendar.current
+    let now = Date()
+    let startDate = calendar.date(byAdding: .year, value: -100, to: now)!  // Start from 100 years ago
+    let endDate = now
+    let interval = DateComponents(day: 1)
+
+    var timeSeriesData = [Date: (Double, Double, Double)]()
+
+    let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, quantitySamplePredicate: nil, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
+
+    activeEnergyQuery.initialResultsHandler = { _, result, error in
+        guard let result = result else {
+            DispatchQueue.main.async {
+                completion(nil, error)
+            }
+            return
+        }
+
+        result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+            let date = statistics.startDate
+            let activeCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
+            timeSeriesData[date] = (activeCalories, 0.0, activeCalories)
+        }
+
+        let basalEnergyQuery = HKStatisticsCollectionQuery(quantityType: basalEnergyType, quantitySamplePredicate: nil, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
+
+        basalEnergyQuery.initialResultsHandler = { _, result, error in
+            guard let result = result else {
+                DispatchQueue.main.async {
+                    completion(nil, error)
+                }
+                return
+            }
+
+            result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+                let date = statistics.startDate
+                let basalCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
+
+                if var data = timeSeriesData[date] {
+                    data.1 = basalCalories
+                    data.2 = data.0 + basalCalories
+                    timeSeriesData[date] = data
+                } else {
+                    timeSeriesData[date] = (0.0, basalCalories, basalCalories)
+                }
+            }
+
+            DispatchQueue.main.async {
+                completion(timeSeriesData, nil)
+            }
+        }
+
+        self.healthStore.execute(basalEnergyQuery)
+    }
+
+    self.healthStore.execute(activeEnergyQuery)
+}
+
     
 }

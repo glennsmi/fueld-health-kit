@@ -16,7 +16,8 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getAuthorizationStatus", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getAllAuthorizationStatuses", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryTotalCalories", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "queryCaloriesTimeSeries", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "queryCaloriesTimeSeries", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "queryAllTimeCaloriesTimeSeries", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = fueldHK()
 
@@ -107,4 +108,29 @@ public class fueldHKPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
     }
+
+    @objc public func queryAllTimeCaloriesTimeSeries(_ call: CAPPluginCall) {
+        print("In the call queryAllTimeCaloriesTimeSeries")
+        
+        implementation.queryAllTimeCaloriesTimeSeries { (timeSeriesData, error) in
+            if let error = error as NSError? {
+                call.reject("Error querying all-time calories time series: \(error.localizedDescription)")
+            } else if let timeSeriesData = timeSeriesData {
+                let result = timeSeriesData.map { (date, values) -> [String: Any] in
+                    return [
+                        "date": ISO8601DateFormatter().string(from: date),
+                        "activeCalories": values.0,
+                        "basalCalories": values.1,
+                        "totalCalories": values.2
+                    ]
+                }
+                call.resolve([
+                    "timeSeriesData": result
+                ])
+            } else {
+                call.reject("Unknown error querying all-time calories time series")
+            }
+        }
+    }
+    
 }

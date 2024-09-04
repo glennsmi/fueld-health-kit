@@ -5,4 +5,5 @@ export interface fueldHKPlugin {
   getAllAuthorizationStatuses(): Promise<{ statuses: string }>;
   queryTotalCalories(): Promise<{ totalCalories: number, activeCalories: number, basalCalories: number }>;
   queryCaloriesTimeSeries(options: { startDate: string, endDate: string }): Promise<{ timeSeriesData: { date: string, activeCalories: number, basalCalories: number, totalCalories: number }[] }>;
+  queryAllTimeCaloriesTimeSeries(): Promise<{ timeSeriesData: { date: string, activeCalories: number, basalCalories: number, totalCalories: number }[] }>;
 }

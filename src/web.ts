@@ -77,4 +77,23 @@ export class fueldHKWeb extends WebPlugin implements fueldHKPlugin {
 
     return { timeSeriesData };
   }
+
+  async queryAllTimeCaloriesTimeSeries(): Promise<{ timeSeriesData: { date: string, activeCalories: number, basalCalories: number, totalCalories: number }[] }> {
+    console.log('Query All Time Calories Time Series');
+    // Web implementation doesn't have access to HealthKit, so we'll return default values
+    const timeSeriesData = [];
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    for (let i = 0; i < 30; i++) {
+      const currentDate = new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
+      timeSeriesData.push({
+        date: currentDate.toISOString(),
+        activeCalories: Math.floor(Math.random() * (600 - 300 + 1)) + 300, // Random between 300-600
+        basalCalories: Math.floor(Math.random() * (1800 - 1400 + 1)) + 1400, // Random between 1400-1800
+        get totalCalories() { return this.activeCalories + this.basalCalories; }
+      });
+    }
+    return { timeSeriesData: [] };
+  }
 }

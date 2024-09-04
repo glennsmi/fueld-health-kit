@@ -19,6 +19,7 @@ npx cap sync
 * [`getAllAuthorizationStatuses()`](#getallauthorizationstatuses)
 * [`queryTotalCalories()`](#querytotalcalories)
 * [`queryCaloriesTimeSeries(...)`](#querycaloriestimeseries)
+* [`queryAllTimeCaloriesTimeSeries()`](#queryalltimecaloriestimeseries)
 
 </docgen-index>
 
@@ -97,6 +98,17 @@ queryCaloriesTimeSeries(options: { startDate: string; endDate: string; }) => Pro
 | Param         | Type                                                 |
 | ------------- | ---------------------------------------------------- |
 | **`options`** | <code>{ startDate: string; endDate: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }&gt;</code>
+
+--------------------
+
+
+### queryAllTimeCaloriesTimeSeries()
+
+```typescript
+queryAllTimeCaloriesTimeSeries() => Promise<{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }>
+```
 
 **Returns:** <code>Promise&lt;{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }&gt;</code>
 
