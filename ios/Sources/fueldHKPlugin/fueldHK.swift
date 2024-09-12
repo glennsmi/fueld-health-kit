@@ -172,11 +172,12 @@ import HealthKit
     // Swift function with the completion handler
     typealias QueryTotalCaloriesComponentsCompletion = (Double?, Double?, Double?, Error?) -> Void
 
+
     func queryTotalCalories(completion: @escaping QueryTotalCaloriesComponentsCompletion) {
         print("In the queryTotalCalories in fueldHK.swift")
 
         guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
-              let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
             completion(nil, nil, nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
             return
         }
@@ -184,7 +185,6 @@ import HealthKit
         let now = Date()
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: now)
-
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
 
         let activeEnergyQuery = HKStatisticsQuery(quantityType: activeEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
@@ -205,7 +205,10 @@ import HealthKit
                 let totalCalories = activeCalories + basalCalories
 
                 print("Successfully queried calories - Active: \(activeCalories), Basal: \(basalCalories), Total: \(totalCalories)")
-                completion(totalCalories, activeCalories, basalCalories, nil)
+
+                DispatchQueue.main.async {
+                    completion(totalCalories, activeCalories, basalCalories, nil)
+                }
             }
 
             self.healthStore.execute(basalEnergyQuery)
@@ -213,44 +216,29 @@ import HealthKit
 
         healthStore.execute(activeEnergyQuery)
     }
-    
+
+
 
     typealias QueryCaloriesTimeSeriesCompletion = ([Date: (Double, Double, Double)]?, Error?) -> Void
 
     func queryCaloriesTimeSeries(startDate: Date, endDate: Date, completion: @escaping QueryCaloriesTimeSeriesCompletion) {
-    print("In the queryCaloriesTimeSeries in fueldHK.swift")
+        print("In the queryCaloriesTimeSeries in fueldHK.swift")
 
-    guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
-          let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
-        completion(nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
-        return
-    }
-
-    let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-    let interval = DateComponents(day: 1)
-    
-    // Initialize timeSeriesData
-    var timeSeriesData: [Date: (Double, Double, Double)] = [:]
-
-    let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
-
-    activeEnergyQuery.initialResultsHandler = { _, result, error in
-        guard let result = result else {
-            DispatchQueue.main.async {
-                completion(nil, error)
-            }
+        guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
+            let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            completion(nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
             return
         }
 
-        result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
-            let date = statistics.startDate
-            let activeCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
-            timeSeriesData[date] = (activeCalories, 0.0, activeCalories)
-        }
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let interval = DateComponents(day: 1)
+        
+        // Initialize timeSeriesData
+        var timeSeriesData: [Date: (Double, Double, Double)] = [:]
 
-        let basalEnergyQuery = HKStatisticsCollectionQuery(quantityType: basalEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
+        let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
 
-        basalEnergyQuery.initialResultsHandler = { _, result, error in
+        activeEnergyQuery.initialResultsHandler = { _, result, error in
             guard let result = result else {
                 DispatchQueue.main.async {
                     completion(nil, error)
@@ -260,45 +248,66 @@ import HealthKit
 
             result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
                 let date = statistics.startDate
-                let basalCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
+                let activeCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
+                timeSeriesData[date] = (activeCalories, 0.0, activeCalories)
+            }
 
-                if var data = timeSeriesData[date] {
-                    data.1 = basalCalories
-                    data.2 = data.0 + basalCalories
-                    timeSeriesData[date] = data
-                } else {
-                    timeSeriesData[date] = (0.0, basalCalories, basalCalories)
+            let basalEnergyQuery = HKStatisticsCollectionQuery(quantityType: basalEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
+
+            basalEnergyQuery.initialResultsHandler = { _, result, error in
+                guard let result = result else {
+                    DispatchQueue.main.async {
+                        completion(nil, error)
+                    }
+                    return
+                }
+
+                result.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+                    let date = statistics.startDate
+                    let basalCalories = statistics.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0.0
+
+                    if var data = timeSeriesData[date] {
+                        data.1 = basalCalories
+                        data.2 = data.0 + basalCalories
+                        timeSeriesData[date] = data
+                    } else {
+                        timeSeriesData[date] = (0.0, basalCalories, basalCalories)
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    completion(timeSeriesData, nil)
                 }
             }
 
-            DispatchQueue.main.async {
-                completion(timeSeriesData, nil)
-            }
+            self.healthStore.execute(basalEnergyQuery)
         }
 
-        self.healthStore.execute(basalEnergyQuery)
+        self.healthStore.execute(activeEnergyQuery)
     }
 
-    self.healthStore.execute(activeEnergyQuery)
-}
-
-@objc public func queryAllTimeCaloriesTimeSeries(completion: @escaping ([Date: (Double, Double, Double)]?, Error?) -> Void) {
+    func queryAllTimeCaloriesTimeSeries(completion: @escaping QueryCaloriesTimeSeriesCompletion) {
     guard let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
           let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
         completion(nil, NSError(domain: "fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Energy types are not available"]))
         return
     }
 
+     // Calculate the start date (1 year ago from now)
     let calendar = Calendar.current
-    let now = Date()
-    let startDate = calendar.date(byAdding: .year, value: -100, to: now)!  // Start from 100 years ago
-    let endDate = now
+    let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date()
+    let startDate = oneYearAgo
+    let endDate = Date() // Current date
+    let predicate = HKQuery.predicateForSamples(withStart: oneYearAgo, end: endDate, options: .strictStartDate)
     let interval = DateComponents(day: 1)
 
     var timeSeriesData = [Date: (Double, Double, Double)]()
 
-    let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, quantitySamplePredicate: nil, options: .cumulativeSum, anchorDate: startDate, intervalComponents: interval)
-
+    let activeEnergyQuery = HKStatisticsCollectionQuery(quantityType: activeEnergyType, 
+                                                        quantitySamplePredicate: predicate, 
+                                                        options: .cumulativeSum, 
+                                                        anchorDate: startDate, 
+                                                        intervalComponents: interval)
     activeEnergyQuery.initialResultsHandler = { _, result, error in
         guard let result = result else {
             DispatchQueue.main.async {
@@ -345,6 +354,321 @@ import HealthKit
     }
 
     self.healthStore.execute(activeEnergyQuery)
+}
+
+    func queryHeartRateForLastSevenDaysPerMinute(completion: @escaping ([Date: Double]?, Error?) -> Void) {
+        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 0, userInfo: [NSLocalizedDescriptionKey: "Heart rate type is not available"]))
+            return
+        }
+
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -1, to: endDate) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"]))
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let interval = DateComponents(minute: 1) // Change to per minute
+
+        let query = HKStatisticsCollectionQuery(quantityType: heartRateType,
+                                                quantitySamplePredicate: predicate,
+                                                options: .discreteAverage,
+                                                anchorDate: startDate,
+                                                intervalComponents: interval)
+
+        query.initialResultsHandler = { [weak self] query, results, error in
+            guard let results = results else {
+                DispatchQueue.main.async {
+                    completion(nil, error)
+                }
+                return
+            }
+
+            var heartRateData: [(date: Date, heartRate: Double)] = []
+
+            results.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+                if let averageHeartRate = statistics.averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) {
+                    heartRateData.append((date: statistics.startDate, heartRate: averageHeartRate))
+                } 
+            }
+
+            DispatchQueue.main.async {
+                let heartRateDataDict = Dictionary(uniqueKeysWithValues: heartRateData.map { ($0.date, $0.heartRate) })
+                completion(heartRateDataDict, nil)
+            }
+        }
+
+        self.healthStore.execute(query)
+    }
+
+    func queryHeartbeatSeriesSamples(completion: @escaping ([Date: Double]?, Error?) -> Void) {
+        guard let heartbeatSeriesType = HKObjectType.seriesType(forIdentifier: HKDataTypeIdentifierHeartbeatSeries) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 0, userInfo: [NSLocalizedDescriptionKey: "Heartbeat series type is not available"]))
+            return
+        }
+
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -1, to: endDate) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"]))
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+
+        let query = HKSampleQuery(sampleType: heartbeatSeriesType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]) { (query, samples, error) in
+            if let error = error {
+                print("Error querying heartbeat series: \(error.localizedDescription)")
+                completion(nil, error)
+                return
+            }
+
+            guard let samples = samples as? [HKHeartbeatSeriesSample], !samples.isEmpty else {
+                completion(nil, nil) // No heartbeat series samples found
+                return
+            }
+
+            var heartbeatData: [(Date, Double, [Double])] = [] // Store date, HRV value, and beat-to-beat data
+            let group = DispatchGroup()
+
+            for sample in samples {
+                group.enter()
+                self.getBeatToBeatData(for: sample) { beatToBeat in
+                    if let beatToBeat = beatToBeat {
+                        let hrvValue = 5.0
+                        heartbeatData.append((sample.startDate, hrvValue, beatToBeat))
+                    }
+                    group.leave()
+                }
+            }
+
+            group.notify(queue: .main) {
+                let dataDict = Dictionary(uniqueKeysWithValues: heartbeatData.map { ($0.0, $0.1) })
+                completion(dataDict, nil)
+            }
+        }
+
+        self.healthStore.execute(query)
+    }
+
+
+    
+    private func getBeatToBeatData(for hrvSample: HKHeartbeatSeriesSample, completion: @escaping ([Double]?) -> Void) {
+        var beatToBeatIntervals: [Double] = []
+
+        // Create the query
+        let query = HKHeartbeatSeriesQuery(heartbeatSeries: hrvSample) { (query, timeSinceSeriesStart, precededByGap, done, error) in
+            if let error = error {
+                print("Error querying heartbeat series: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+                return
+            }
+
+            // If we have time data, add it to the array
+            if timeSinceSeriesStart >= 0 { // This will check if timeSinceSeriesStart is valid
+                beatToBeatIntervals.append(timeSinceSeriesStart)
+            }
+
+            // When done, return the results
+            if done {
+                DispatchQueue.main.async {
+                    completion(beatToBeatIntervals)
+                }
+            }
+        }
+
+        // Execute the query
+        self.healthStore.execute(query)
+    }
+    
+
+    func queryHRVForLastWeek(completion: @escaping ([(Date, Double)]?, Error?) -> Void) {
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 0, userInfo: [NSLocalizedDescriptionKey: "HRV type is not available"]))
+            return
+        }
+
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -1, to: endDate) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"]))
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: hrvType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]) { (query, samples, error) in
+            if let error = error {
+                print("Error querying HRV: \(error.localizedDescription)")
+                completion(nil, error)
+                return
+            }
+
+            guard let samples = samples as? [HKQuantitySample], !samples.isEmpty else {
+                completion([], nil) // No HRV samples found, return empty array
+                return
+            }
+
+            let hrvData = samples.map { sample in
+                (sample.startDate, sample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli)))
+            }
+
+            completion(hrvData, nil)
+        }
+
+        self.healthStore.execute(query)
+    }
+
+
+
+
+    func queryHRVAndBeatToBeatForLastDay(completion: @escaping ([(Date, Double)]?, [(Date, Double)]?, Error?) -> Void) {
+        print("In the queryHRVAndBeatToBeatForLastDay in fueldHK.swift")
+        guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
+            completion(nil, nil, NSError(domain: "com.fueldHK", code: 0, userInfo: [NSLocalizedDescriptionKey: "HRV type is not available"]))
+            return
+        }
+
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -1, to: endDate) else {
+            completion(nil, nil, NSError(domain: "com.fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"]))
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+
+        // Query for HRV data
+        let hrvQuery = HKSampleQuery(sampleType: hrvType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]) { (query, samples, error) in
+            if let error = error {
+                print("Error querying HRV: \(error.localizedDescription)")
+                completion(nil, nil, error)
+                return
+            }
+
+            guard let hrvSamples = samples as? [HKQuantitySample], !hrvSamples.isEmpty else {
+                completion(nil, nil, nil) // No HRV samples found
+                return
+            }
+
+            // Prepare to store both HRV and beat-to-beat intervals
+            var hrvData: [(Date, Double)] = []
+            var beatToBeatData: [(Date, Double)] = []
+
+            let dispatchGroup = DispatchGroup()
+
+            for hrvSample in hrvSamples {
+                                
+                dispatchGroup.enter()
+
+                // Store HRV data
+                let hrvValue = hrvSample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli))
+                hrvData.append((hrvSample.startDate, hrvValue))
+
+                // Query for heartbeat series samples within the HRV sample period
+                let heartbeatPredicate = HKQuery.predicateForSamples(withStart: hrvSample.startDate, end: hrvSample.endDate, options: .strictStartDate)
+
+                // First, query for HKHeartbeatSeriesSample
+                let heartbeatSeriesQuery = HKSampleQuery(sampleType: HKSeriesType.heartbeat(), predicate: heartbeatPredicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { (query, samples, error) in
+                    guard error == nil else {
+                        print("Error querying heartbeat series: \(String(describing: error?.localizedDescription))")
+                        dispatchGroup.leave()
+                        return
+                    }
+
+                    guard let heartbeatSeriesSamples = samples as? [HKHeartbeatSeriesSample] else {
+                        print("No heartbeat series samples found")
+                        dispatchGroup.leave()
+                        return
+                    }
+
+                    // Now process each heartbeat series sample
+                    for heartbeatSeriesSample in heartbeatSeriesSamples {
+                        let seriesQuery = HKHeartbeatSeriesQuery(heartbeatSeries: heartbeatSeriesSample) { (query, timeSinceSeriesStart, precededByGap, done, error) in
+                            if let error = error {
+                                print("Error in heartbeat series query: \(error.localizedDescription)")
+                                dispatchGroup.leave()
+                                return
+                            }
+
+                            // Store beat-to-beat data
+                            let beatInterval = timeSinceSeriesStart
+                            beatToBeatData.append((heartbeatSeriesSample.startDate, beatInterval))
+
+                            if done {
+                                dispatchGroup.leave()
+                            }
+                        }
+
+                        // Execute the query for this heartbeat series sample
+                        HKHealthStore().execute(seriesQuery)
+                    }
+                }
+
+                // Execute the heartbeat series sample query
+                HKHealthStore().execute(heartbeatSeriesQuery)
+            }
+
+            // Once all HRV and heartbeat queries are done, call the completion handler
+            dispatchGroup.notify(queue: .main) {
+                completion(hrvData, beatToBeatData, nil)
+            }
+        }
+
+        // Execute the HRV query
+        HKHealthStore().execute(hrvQuery)
+    }
+
+
+     struct SleepData {
+        let date: Date
+        let duration: TimeInterval
+        let sleepValue: HKCategoryValueSleepAnalysis
+    }
+    
+    func querySleepData(from startDate: Date, to endDate: Date, completion: @escaping ([SleepData]?, Error?) -> Void) {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+            completion(nil, NSError(domain: "com.fueldHK", code: 0, userInfo: [NSLocalizedDescriptionKey: "Sleep Analysis type is not available"]))
+            return
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        
+        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { [weak self] (query, samples, error) in
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion(nil, error)
+                }
+                return
+            }
+            
+            guard let sleepSamples = samples as? [HKCategorySample] else {
+                DispatchQueue.main.async {
+                    completion(nil, NSError(domain: "com.fueldHK", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not cast samples to HKCategorySample"]))
+                }
+                return
+            }
+            
+            let sleepData = sleepSamples.compactMap { sample -> SleepData? in
+                guard let sleepValue = HKCategoryValueSleepAnalysis(rawValue: sample.value) else {
+                    return nil
+                }
+                let duration = sample.endDate.timeIntervalSince(sample.startDate)
+                return SleepData(date: sample.startDate, duration: duration, sleepValue: sleepValue)
+            }
+            
+            DispatchQueue.main.async {
+                completion(sleepData, nil)
+            }
+        }
+        
+        healthStore.execute(query)
+    }
 }
 
     

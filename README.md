@@ -20,6 +20,10 @@ npx cap sync
 * [`queryTotalCalories()`](#querytotalcalories)
 * [`queryCaloriesTimeSeries(...)`](#querycaloriestimeseries)
 * [`queryAllTimeCaloriesTimeSeries()`](#queryalltimecaloriestimeseries)
+* [`queryHeartRateForLastSevenDays()`](#queryheartrateforlastsevendays)
+* [`queryHRVForLastWeek()`](#queryhrvforlastweek)
+* [`queryHRVAndBeatToBeatForLastDay()`](#queryhrvandbeattobeatforlastday)
+* [`querySleepData(...)`](#querysleepdata)
 
 </docgen-index>
 
@@ -111,6 +115,54 @@ queryAllTimeCaloriesTimeSeries() => Promise<{ timeSeriesData: { date: string; ac
 ```
 
 **Returns:** <code>Promise&lt;{ timeSeriesData: { date: string; activeCalories: number; basalCalories: number; totalCalories: number; }[]; }&gt;</code>
+
+--------------------
+
+
+### queryHeartRateForLastSevenDays()
+
+```typescript
+queryHeartRateForLastSevenDays() => Promise<{ heartRateData: { date: string; heartRate: number; }[]; }>
+```
+
+**Returns:** <code>Promise&lt;{ heartRateData: { date: string; heartRate: number; }[]; }&gt;</code>
+
+--------------------
+
+
+### queryHRVForLastWeek()
+
+```typescript
+queryHRVForLastWeek() => Promise<{ hrvData: { date: string; hrv: number; }[]; }>
+```
+
+**Returns:** <code>Promise&lt;{ hrvData: { date: string; hrv: number; }[]; }&gt;</code>
+
+--------------------
+
+
+### queryHRVAndBeatToBeatForLastDay()
+
+```typescript
+queryHRVAndBeatToBeatForLastDay() => Promise<{ hrvData: { date: string; hrv: number; }[]; beatToBeatData: { date: string; beatToBeat: number; }[]; }>
+```
+
+**Returns:** <code>Promise&lt;{ hrvData: { date: string; hrv: number; }[]; beatToBeatData: { date: string; beatToBeat: number; }[]; }&gt;</code>
+
+--------------------
+
+
+### querySleepData(...)
+
+```typescript
+querySleepData(options: { startDate: string; endDate: string; }) => Promise<{ sleepData: { date: string; duration: number; sleepValue: number; }[]; }>
+```
+
+| Param         | Type                                                 |
+| ------------- | ---------------------------------------------------- |
+| **`options`** | <code>{ startDate: string; endDate: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ sleepData: { date: string; duration: number; sleepValue: number; }[]; }&gt;</code>
 
 --------------------
 
